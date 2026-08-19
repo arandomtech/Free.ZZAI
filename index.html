@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     
-    <!-- Fontes Google -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
@@ -73,21 +73,38 @@
             padding: 24px 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
             width: 320px;
             flex-shrink: 0;
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease;
         }
 
+        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .sidebar { 
                 position: absolute;
-                left: -320px;
-                height: 100%;
+                left: 0;
+                top: 0;
+                bottom: 0;
                 z-index: 100;
+                transform: translateX(-100%);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.8);
             }
             .sidebar.open {
-                left: 0;
+                transform: translateX(0);
+            }
+            .mobile-toggle {
+                display: flex !important;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: absolute;
+                inset: 0;
+                background: rgba(0,0,0,0.6);
+                z-index: 99;
+            }
+            .sidebar-overlay.active {
+                display: block;
             }
         }
 
@@ -138,12 +155,32 @@
             transform: translateY(-2px);
         }
 
+        .search-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            width: 100%;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+
         .sidebar-section-title {
             font-size: 0.65rem;
             color: var(--text-muted);
             font-family: 'JetBrains Mono', monospace;
             letter-spacing: 1px;
-            margin-top: 10px;
+            margin-top: 4px;
         }
 
         .chat-list {
@@ -164,7 +201,7 @@
         }
 
         .chat-item {
-            padding: 12px 14px;
+            padding: 10px 12px;
             border-radius: 10px;
             border: 1px solid transparent;
             background: rgba(255, 255, 255, 0.02);
@@ -198,22 +235,33 @@
             flex: 1;
         }
 
-        .delete-chat-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
+        .chat-actions {
+            display: flex;
+            gap: 4px;
             opacity: 0;
             transition: all 0.2s ease;
         }
 
-        .chat-item:hover .delete-chat-btn {
+        .chat-item:hover .chat-actions {
             opacity: 1;
         }
 
-        .delete-chat-btn:hover {
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .icon-btn.delete:hover {
             color: var(--danger);
             background: rgba(255, 68, 68, 0.1);
         }
@@ -237,6 +285,22 @@
             background: var(--panel);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px;
+            border-radius: 8px;
+            cursor: pointer;
         }
 
         .chat-header .title {
@@ -493,9 +557,10 @@
 <body>
 
 <div class="ambient-bg"></div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="layout">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="brand-container">
             <div class="brand">ZZAI // UNCENSORED</div>
             <div class="brand-subtitle">High Performance Intelligence</div>
@@ -503,16 +568,26 @@
         
         <button class="btn-new-chat" id="newChatBtn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            NOVA CONVERSA
+            NEW CHAT
         </button>
 
-        <div class="sidebar-section-title">SUAS CONVERSAS</div>
+        <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Search chats or messages...">
+        </div>
+
+        <div class="sidebar-section-title">YOUR CONVERSATIONS</div>
         <div class="chat-list" id="chatList"></div>
     </aside>
     
     <main class="main-chat">
         <header class="chat-header">
-            <div class="title" id="currentChatTitle">ZZAI ENGINE v1.0</div>
+            <div class="header-left">
+                <button class="mobile-toggle" id="mobileToggle" title="Toggle Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="title" id="currentChatTitle">ZZAI ENGINE v1.0</div>
+            </div>
             <div class="status-badge">
                 <div class="status-dot"></div>
                 ONLINE
@@ -523,8 +598,8 @@
 
         <div class="input-wrapper">
             <div class="input-box">
-                <textarea id="prompt" placeholder="Pergunte qualquer coisa..." rows="1"></textarea>
-                <button id="send">ENVIAR</button>
+                <textarea id="prompt" placeholder="Ask anything..." rows="1"></textarea>
+                <button id="send">SEND</button>
             </div>
         </div>
     </main>
@@ -541,14 +616,30 @@
     const sendBtn = document.getElementById('send');
     const chatListEl = document.getElementById('chatList');
     const newChatBtn = document.getElementById('newChatBtn');
+    const searchInput = document.getElementById('searchInput');
+    const sidebar = document.getElementById('sidebar');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-    // Auto-resize do textarea
+    // Auto-resize textarea
     promptEl.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    // Configuração do Marked.js
+    // Mobile Sidebar controls
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+    }
+
+    mobileToggle.onclick = toggleSidebar;
+    sidebarOverlay.onclick = toggleSidebar;
+
+    // Search filter listener
+    searchInput.addEventListener('input', renderSidebar);
+
+    // Marked.js config
     marked.use({
         renderer: {
             code(token) {
@@ -565,7 +656,7 @@
                             <span>${validLang.toUpperCase()}</span>
                             <button class="copy-btn" onclick="copyToClipboard('${codeId}', this)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                Copiar
+                                Copy
                             </button>
                         </div>
                         <pre><code id="${codeId}" class="hljs ${validLang}">${highlighted}</code></pre>
@@ -581,7 +672,7 @@
         
         navigator.clipboard.writeText(codeElement.innerText).then(() => {
             const originalText = btn.innerHTML;
-            btn.innerHTML = `✓ Copiado!`;
+            btn.innerHTML = `✓ Copied!`;
             btn.style.background = 'var(--accent)';
             btn.style.color = '#000';
             
@@ -599,19 +690,44 @@
 
     function renderSidebar() {
         chatListEl.innerHTML = '';
-        chats.forEach(chat => {
+        const query = searchInput.value.toLowerCase().trim();
+
+        const filteredChats = chats.filter(chat => {
+            if (!query) return true;
+            const matchesTitle = chat.title.toLowerCase().includes(query);
+            const matchesContent = chat.messages.some(m => 
+                m.parts.some(p => p.text.toLowerCase().includes(query))
+            );
+            return matchesTitle || matchesContent;
+        });
+
+        filteredChats.forEach(chat => {
             const chatItem = document.createElement('div');
             chatItem.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
             
             chatItem.innerHTML = `
                 <span class="chat-item-title">${chat.title}</span>
-                <button class="delete-chat-btn" title="Excluir conversa">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
+                <div class="chat-actions">
+                    <button class="icon-btn edit" title="Rename Chat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button class="icon-btn delete" title="Delete Chat">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
             `;
 
-            chatItem.querySelector('.chat-item-title').onclick = () => selectChat(chat.id);
-            chatItem.querySelector('.delete-chat-btn').onclick = (e) => {
+            chatItem.querySelector('.chat-item-title').onclick = () => {
+                selectChat(chat.id);
+                if (window.innerWidth <= 768) toggleSidebar();
+            };
+
+            chatItem.querySelector('.edit').onclick = (e) => {
+                e.stopPropagation();
+                renameChat(chat.id);
+            };
+
+            chatItem.querySelector('.delete').onclick = (e) => {
                 e.stopPropagation();
                 deleteChat(chat.id);
             };
@@ -623,12 +739,27 @@
     function createNewChat() {
         const newChat = {
             id: 'chat_' + Date.now(),
-            title: 'Nova Conversa',
+            title: 'New Conversation',
             messages: []
         };
         chats.unshift(newChat);
         saveToStorage();
         selectChat(newChat.id);
+        if (window.innerWidth <= 768) toggleSidebar();
+    }
+
+    function renameChat(id) {
+        const chat = chats.find(c => c.id === id);
+        if (!chat) return;
+        const newName = prompt("Enter a new name for this chat:", chat.title);
+        if (newName && newName.trim()) {
+            chat.title = newName.trim();
+            saveToStorage();
+            if (currentChatId === id) {
+                document.getElementById('currentChatTitle').innerText = chat.title;
+            }
+            renderSidebar();
+        }
     }
 
     function selectChat(id) {
@@ -661,7 +792,7 @@
             historyEl.innerHTML = `
                 <div class="message-wrapper">
                     <div class="message-sender">System</div>
-                    <div class="message ai">Sistema inicializado. Digite sua mensagem para iniciar o chat.</div>
+                    <div class="message ai">System initialized. Type a message to start the conversation.</div>
                 </div>
             `;
             return;
@@ -672,7 +803,7 @@
             wrapper.className = 'message-wrapper';
 
             const isUser = msg.role === 'user';
-            const senderName = isUser ? 'Você' : 'ZZAI Engine';
+            const senderName = isUser ? 'You' : 'ZZAI Engine';
             const textContent = msg.parts[0].text;
 
             wrapper.innerHTML = `
@@ -704,7 +835,7 @@
         const activeChat = chats.find(c => c.id === currentChatId);
         activeChat.messages.push({ role: "user", parts: [{ text: queryText }] });
 
-        if (activeChat.messages.length === 1 || activeChat.title === 'Nova Conversa') {
+        if (activeChat.messages.length === 1 || activeChat.title === 'New Conversation') {
             activeChat.title = queryText.substring(0, 25) + '...';
         }
 
@@ -732,6 +863,7 @@
         historyEl.scrollTop = historyEl.scrollHeight;
 
         try {
+            // FULL HISTORY TRANSMISSION: Sends the entire sequence of conversations to ensure complete memory context.
             const resp = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -741,34 +873,36 @@
             const data = await resp.json();
 
             if (!resp.ok) {
-                throw new Error(data.error || `Erro HTTP ${resp.status}`);
+                throw new Error(data.error || `HTTP Error ${resp.status}`);
             }
 
             const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            const responseText = typeof rawText === 'string' ? rawText : "Nenhuma resposta recebida.";
+            const responseText = typeof rawText === 'string' ? rawText : "No response received.";
 
             activeChat.messages.push({ role: "model", parts: [{ text: responseText }] });
             saveToStorage();
             renderHistory();
 
         } catch(e) {
-            historyEl.removeChild(loadingWrapper);
+            if (historyEl.contains(loadingWrapper)) {
+                historyEl.removeChild(loadingWrapper);
+            }
             
             const errorWrapper = document.createElement('div');
             errorWrapper.className = 'message-wrapper';
             errorWrapper.innerHTML = `
                 <div class="message-sender">System</div>
-                <div class="message ai" style="color: var(--danger);">Erro: ${e.message}</div>
+                <div class="message ai" style="color: var(--danger);">Error: ${e.message}</div>
             `;
             historyEl.appendChild(errorWrapper);
-            activeChat.messages.pop(); // Remove a pergunta que falhou
+            activeChat.messages.pop(); // Revert user message on error
             saveToStorage();
         }
 
         historyEl.scrollTop = historyEl.scrollHeight;
     }
 
-    // Inicialização
+    // Initialization
     if (chats.length > 0) {
         selectChat(chats[0].id);
     } else {
