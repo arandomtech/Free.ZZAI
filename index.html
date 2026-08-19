@@ -156,7 +156,6 @@
             scroll-behavior: smooth;
         }
 
-        /* Scrollbar Styling */
         .chat-history::-webkit-scrollbar {
             width: 6px;
         }
@@ -209,7 +208,7 @@
         .ai p { margin-bottom: 12px; }
         .ai p:last-child { margin-bottom: 0; }
 
-        /* Code Block Styling Improvements */
+        /* Code Block Styling */
         .code-container {
             margin: 14px 0;
             border-radius: 8px;
@@ -366,7 +365,6 @@
 </div>
 
 <script>
-<script>
     const historyEl = document.getElementById('history');
     const promptEl = document.getElementById('prompt');
     const sendBtn = document.getElementById('send');
@@ -378,39 +376,42 @@
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    // Custom Renderer do Marked
-    const renderer = new marked.Renderer();
-    renderer.code = function(code, language) {
-        const validLang = language && hljs.getLanguage(language) ? language : 'text';
-        const highlighted = hljs.highlight(code, { language: validLang }).value;
-        const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
-        
-        return `
-            <div class="code-container">
-                <div class="code-header">
-                    <span>${validLang.toUpperCase()}</span>
-                    <button class="copy-btn" onclick="copyToClipboard('${codeId}', this)">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Copy
-                    </button>
-                </div>
-                <pre><code id="${codeId}" class="hljs ${validLang}">${highlighted}</code></pre>
-            </div>
-        `;
-    };
-
-    marked.setOptions({ renderer: renderer });
+    // Configuração do Marked.js atualizada
+    marked.use({
+        renderer: {
+            code(code, language) {
+                const validLang = language && hljs.getLanguage(language) ? language : 'text';
+                const highlighted = hljs.highlight(code, { language: validLang }).value;
+                const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
+                
+                return `
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>${validLang.toUpperCase()}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${codeId}', this)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <pre><code id="${codeId}" class="hljs ${validLang}">${highlighted}</code></pre>
+                    </div>
+                `;
+            }
+        }
+    });
 
     window.copyToClipboard = function(elementId, btn) {
-        const codeText = document.getElementById(elementId).innerText;
-        navigator.clipboard.writeText(codeText).then(() => {
-            const originalText = btn.innerHTML;
+        const codeElement = document.getElementById(elementId);
+        if (!codeElement) return;
+        
+        navigator.clipboard.writeText(codeElement.innerText).then(() => {
+            const originalHTML = btn.innerHTML;
             btn.innerHTML = `✓ Copied!`;
             btn.style.background = 'var(--accent)';
             btn.style.color = '#000';
             
             setTimeout(() => {
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalHTML;
                 btn.style.background = 'transparent';
                 btn.style.color = 'var(--text-main)';
             }, 2000);
@@ -423,7 +424,7 @@
 
         chatHistory.push({ role: "user", parts: [{ text: query }] });
 
-        // User UI
+        // Interface do Usuário
         const userWrapper = document.createElement('div');
         userWrapper.className = 'message-wrapper';
         userWrapper.innerHTML = `
@@ -436,7 +437,7 @@
         promptEl.value = '';
         promptEl.style.height = 'auto';
         
-        // AI UI
+        // Interface da IA
         const aiWrapper = document.createElement('div');
         aiWrapper.className = 'message-wrapper';
         aiWrapper.innerHTML = `
@@ -449,7 +450,6 @@
         const aiMsgDiv = aiWrapper.querySelector('.ai');
 
         try {
-            // Requisição para a Serverless Function oculta
             const resp = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -476,9 +476,10 @@
         historyEl.scrollTop = historyEl.scrollHeight;
     }
 
+    // Event Listeners
     sendBtn.onclick = process;
     promptEl.onkeydown = (e) => { 
-        if(e.key === 'Enter' && !e.shiftKey) { 
+        if (e.key === 'Enter' && !e.shiftKey) { 
             e.preventDefault(); 
             process(); 
         } 
