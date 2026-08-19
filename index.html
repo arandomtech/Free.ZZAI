@@ -562,7 +562,7 @@
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    // Controle do Menu Mobile sem interferência externa
+    // Controle do Menu Mobile
     function openSidebar() {
         sidebar.classList.add('open');
     }
@@ -590,7 +590,6 @@
     mobileToggle.addEventListener('click', handleMobileOpen);
     closeSidebarBtn.addEventListener('click', handleMobileClose);
 
-    // Impede qualquer propagação vinda de dentro do menu
     sidebar.addEventListener('click', (e) => {
         e.stopPropagation();
     });
@@ -762,10 +761,11 @@
         if (!currentChatId) createNewChat();
 
         const activeChat = chats.find(c => c.id === currentChatId);
+        
         activeChat.messages.push({ role: "user", parts: [{ text: queryText }] });
 
         if (activeChat.messages.length === 1 || activeChat.title === 'New Conversation') {
-            activeChat.title = queryText.substring(0, 25) + '...';
+            activeChat.title = queryText.substring(0, 25) + (queryText.length > 25 ? '...' : '');
         }
 
         saveToStorage();
@@ -791,22 +791,39 @@
         historyEl.scrollTop = historyEl.scrollHeight;
 
         try {
+            // Mapeamento limpo para não enviar resíduos inválidos de contexto à API
+            const payloadContents = activeChat.messages.map(msg => ({
+                role: msg.role === 'model' ? 'model' : 'user',
+                parts: [{ text: msg.parts[0].text }]
+            }));
+
             const resp = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: activeChat.messages })
+                body: JSON.stringify({ contents: payloadContents })
             });
 
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.error || `HTTP Error ${resp.status}`);
 
             const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            activeChat.messages.push({ role: "model", parts: [{ text: rawText || "No response." }] });
-            saveToStorage();
-            renderHistory();
+            
+            if (historyEl.contains(loadingWrapper)) {
+                historyEl.removeChild(loadingWrapper);
+            }
+
+            if (rawText) {
+                activeChat.messages.push({ role: "model", parts: [{ text: rawText }] });
+                saveToStorage();
+                renderHistory();
+            } else {
+                throw new Error("Resposta vazia do servidor.");
+            }
 
         } catch(e) {
-            if (historyEl.contains(loadingWrapper)) historyEl.removeChild(loadingWrapper);
+            if (historyEl.contains(loadingWrapper)) {
+                historyEl.removeChild(loadingWrapper);
+            }
             
             const errorWrapper = document.createElement('div');
             errorWrapper.className = 'message-wrapper';
