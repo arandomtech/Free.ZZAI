@@ -75,34 +75,18 @@
             width: 300px;
             flex-shrink: 0;
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 100;
-        }
-
-        /* Overlay leve no Mobile */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.2);
-            z-index: 90;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .sidebar-overlay.active {
-            display: block;
-            pointer-events: auto;
-            opacity: 1;
+            z-index: 1000;
         }
 
         .close-mobile-sidebar {
             display: none;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
+            background: rgba(255, 68, 68, 0.15);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 6px;
             cursor: pointer;
-            padding: 4px;
+            padding: 6px;
+            touch-action: manipulation;
         }
 
         /* Mobile Adjustments */
@@ -118,13 +102,15 @@
                 box-shadow: 8px 0 24px rgba(0, 0, 0, 0.9);
             }
             .sidebar.open {
-                transform: translateX(0);
+                transform: translateX(0) !important;
             }
             .mobile-toggle {
                 display: flex !important;
             }
             .close-mobile-sidebar {
-                display: block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             .chat-actions {
                 opacity: 1 !important;
@@ -319,6 +305,7 @@
             padding: 6px;
             border-radius: 8px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .chat-header .title {
@@ -502,7 +489,6 @@
 <body>
 
 <div class="ambient-bg"></div>
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="layout">
     <aside class="sidebar" id="sidebar">
@@ -511,12 +497,12 @@
                 <div class="brand">ZZAI // UNCENSORED</div>
                 <div class="brand-subtitle">High Performance Intelligence</div>
             </div>
-            <button class="close-mobile-sidebar" id="closeSidebarBtn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <button class="close-mobile-sidebar" id="closeSidebarBtn" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
         
-        <button class="btn-new-chat" id="newChatBtn">
+        <button class="btn-new-chat" id="newChatBtn" type="button">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             NEW CHAT
         </button>
@@ -533,7 +519,7 @@
     <main class="main-chat">
         <header class="chat-header">
             <div class="header-left">
-                <button class="mobile-toggle" id="mobileToggle" title="Toggle Menu">
+                <button class="mobile-toggle" id="mobileToggle" type="button" title="Toggle Menu">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                 </button>
                 <div class="title" id="currentChatTitle">ZZAI ENGINE v1.0</div>
@@ -569,7 +555,6 @@
     const searchInput = document.getElementById('searchInput');
     const sidebar = document.getElementById('sidebar');
     const mobileToggle = document.getElementById('mobileToggle');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
     const closeSidebarBtn = document.getElementById('closeSidebarBtn');
 
     promptEl.addEventListener('input', function() {
@@ -577,34 +562,38 @@
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
+    // Controle do Menu Mobile sem interferência externa
     function openSidebar() {
         sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
     }
 
     function closeSidebar() {
         sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
     }
 
-    mobileToggle.onclick = (e) => {
-        e.stopPropagation();
+    const handleMobileOpen = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         openSidebar();
     };
 
-    closeSidebarBtn.onclick = (e) => {
-        e.stopPropagation();
+    const handleMobileClose = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         closeSidebar();
     };
 
-    sidebarOverlay.onclick = (e) => {
-        e.stopPropagation();
-        closeSidebar();
-    };
+    mobileToggle.addEventListener('click', handleMobileOpen);
+    closeSidebarBtn.addEventListener('click', handleMobileClose);
 
-    sidebar.onclick = (e) => {
+    // Impede qualquer propagação vinda de dentro do menu
+    sidebar.addEventListener('click', (e) => {
         e.stopPropagation();
-    };
+    });
 
     searchInput.addEventListener('input', renderSidebar);
 
