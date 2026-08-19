@@ -78,12 +78,12 @@
             z-index: 100;
         }
 
-        /* Mobile Overlay sem escurecer o fundo todo */
+        /* Overlay leve no Mobile */
         .sidebar-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.2); /* Sombra ultra leve */
+            background: rgba(0, 0, 0, 0.2);
             z-index: 90;
             pointer-events: none;
             opacity: 0;
@@ -577,14 +577,34 @@
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        sidebarOverlay.classList.toggle('active');
+    function openSidebar() {
+        sidebar.classList.add('open');
+        sidebarOverlay.classList.add('active');
     }
 
-    mobileToggle.onclick = toggleSidebar;
-    sidebarOverlay.onclick = toggleSidebar;
-    closeSidebarBtn.onclick = toggleSidebar;
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+    }
+
+    mobileToggle.onclick = (e) => {
+        e.stopPropagation();
+        openSidebar();
+    };
+
+    closeSidebarBtn.onclick = (e) => {
+        e.stopPropagation();
+        closeSidebar();
+    };
+
+    sidebarOverlay.onclick = (e) => {
+        e.stopPropagation();
+        closeSidebar();
+    };
+
+    sidebar.onclick = (e) => {
+        e.stopPropagation();
+    };
 
     searchInput.addEventListener('input', renderSidebar);
 
@@ -646,9 +666,10 @@
                 </div>
             `;
 
-            chatItem.querySelector('.chat-item-title').onclick = () => {
+            chatItem.querySelector('.chat-item-title').onclick = (e) => {
+                e.stopPropagation();
                 selectChat(chat.id);
-                if (window.innerWidth <= 768) toggleSidebar();
+                if (window.innerWidth <= 768) closeSidebar();
             };
 
             chatItem.querySelector('.edit').onclick = (e) => {
@@ -674,7 +695,7 @@
         chats.unshift(newChat);
         saveToStorage();
         selectChat(newChat.id);
-        if (window.innerWidth <= 768) toggleSidebar();
+        if (window.innerWidth <= 768) closeSidebar();
     }
 
     function renameChat(id) {
@@ -816,7 +837,10 @@
     else { renderHistory(); renderSidebar(); }
 
     sendBtn.onclick = process;
-    newChatBtn.onclick = createNewChat;
+    newChatBtn.onclick = (e) => {
+        e.stopPropagation();
+        createNewChat();
+    };
 
     promptEl.onkeydown = (e) => { 
         if (e.key === 'Enter' && !e.shiftKey) { 
