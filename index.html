@@ -376,12 +376,16 @@
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    // Configuração do Marked.js atualizada
+    // Configuração do Marked.js corrigida para as versões mais recentes
     marked.use({
         renderer: {
-            code(code, language) {
+            code(token) {
+                // Nas versões novas do marked, o argumento é um objeto token
+                const codeText = typeof token === 'string' ? token : (token.text || '');
+                const language = typeof token === 'object' && token.lang ? token.lang : '';
+
                 const validLang = language && hljs.getLanguage(language) ? language : 'text';
-                const highlighted = hljs.highlight(code, { language: validLang }).value;
+                const highlighted = hljs.highlight(codeText, { language: validLang }).value;
                 const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
                 
                 return `
@@ -462,12 +466,14 @@
                 throw new Error(data.error || `HTTP Error ${resp.status}`);
             }
 
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            const text = typeof rawText === 'string' ? rawText : "No response received.";
             
             chatHistory.push({ role: "model", parts: [{ text: text }] });
 
             aiMsgDiv.style.color = 'var(--text-main)';
-            aiMsgDiv.innerHTML = marked.parse(text);
+            // Garantindo passagem de string segura para o Marked
+            aiMsgDiv.innerHTML = marked.parse(String(text));
         } catch(e) {
             aiMsgDiv.innerHTML = `<span style="color: #ff4444;">Error: ${e.message}</span>`;
             chatHistory.pop();
