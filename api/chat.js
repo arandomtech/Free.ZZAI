@@ -3,12 +3,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  // Separa as chaves por vírgula e remove espaços extras
-  const rawKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+  // Lê exclusivamente a variável GEMINI_API_KEYS
+  const rawKeys = process.env.GEMINI_API_KEYS || '';
   const apiKeys = rawKeys.split(',').map(key => key.trim()).filter(Boolean);
 
   if (apiKeys.length === 0) {
-    return res.status(500).json({ error: 'Nenhuma API Key configurada no servidor.' });
+    return res.status(500).json({ error: 'Variável GEMINI_API_KEYS não configurada no servidor.' });
   }
 
   // Seleciona uma chave aleatória para distribuir as requisições
