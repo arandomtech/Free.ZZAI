@@ -64,7 +64,6 @@
             z-index: 1;
         }
 
-        /* Sidebar Glassmorphism */
         .sidebar {
             background: #090b10;
             border-right: 1px solid var(--border);
@@ -89,7 +88,6 @@
             touch-action: manipulation;
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .sidebar { 
                 position: fixed;
@@ -272,7 +270,6 @@
             background: rgba(255, 68, 68, 0.1);
         }
 
-        /* Main Chat Area */
         .main-chat {
             display: flex;
             flex-direction: column;
@@ -428,10 +425,30 @@
             border-top: 1px solid var(--border);
         }
 
-        .input-box {
+        .input-container {
             max-width: 850px;
             margin: 0 auto;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        .input-box {
+            display: flex;
+            align-items: center;
             gap: 12px;
             background: rgba(0, 0, 0, 0.6);
             padding: 10px 14px;
@@ -452,11 +469,27 @@
             font-size: 0.95rem;
         }
 
+        button#attachBtn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        button#attachBtn:hover {
+            color: var(--accent);
+        }
+
         button#send {
             background: var(--accent);
             color: #000;
             border: none;
-            padding: 0 20px;
+            padding: 10px 20px;
             border-radius: 10px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
@@ -533,9 +566,21 @@
         <div id="history" class="chat-history"></div>
 
         <div class="input-wrapper">
-            <div class="input-box">
-                <textarea id="prompt" placeholder="Ask anything..." rows="1"></textarea>
-                <button id="send">SEND</button>
+            <div class="input-container">
+                <div class="file-preview" id="filePreview">
+                    <span id="fileName"></span>
+                    <button class="icon-btn delete" id="removeFileBtn" type="button" title="Remove file">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="input-box">
+                    <input type="file" id="fileInput" style="display: none;">
+                    <button id="attachBtn" type="button" title="Attach file">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    <textarea id="prompt" placeholder="Ask anything..." rows="1"></textarea>
+                    <button id="send">SEND</button>
+                </div>
             </div>
         </div>
     </main>
@@ -546,6 +591,7 @@
     
     let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let currentChatId = null;
+    let attachedFile = null;
 
     const historyEl = document.getElementById('history');
     const promptEl = document.getElementById('prompt');
@@ -556,43 +602,57 @@
     const sidebar = document.getElementById('sidebar');
     const mobileToggle = document.getElementById('mobileToggle');
     const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    const fileInput = document.getElementById('fileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    const filePreview = document.getElementById('filePreview');
+    const fileNameSpan = document.getElementById('fileName');
+    const removeFileBtn = document.getElementById('removeFileBtn');
 
     promptEl.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight - 16) + 'px';
     });
 
-    // Controle do Menu Mobile
-    function openSidebar() {
-        sidebar.classList.add('open');
-    }
+    attachBtn.onclick = () => fileInput.click();
 
-    function closeSidebar() {
-        sidebar.classList.remove('open');
-    }
+    fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const handleMobileOpen = (e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
+        const reader = new FileReader();
+        const isText = file.type.startsWith('text/') || file.name.match(/\.(txt|js|ts|html|css|json|md|py|c|cpp|cs|java|rb|php|go|rs|sh|xml|yaml|yml|luau|lua)$/i);
+
+        if (isText) {
+            reader.readAsText(file);
+            reader.onload = () => {
+                attachedFile = { name: file.name, type: 'text', content: reader.result };
+                fileNameSpan.innerText = `📄 ${file.name}`;
+                filePreview.style.display = 'flex';
+            };
+        } else {
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const base64Data = reader.result.split(',')[1];
+                attachedFile = { name: file.name, type: 'image', mimeType: file.type || 'image/png', data: base64Data };
+                fileNameSpan.innerText = `🖼️ ${file.name}`;
+                filePreview.style.display = 'flex';
+            };
         }
-        openSidebar();
     };
 
-    const handleMobileClose = (e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        closeSidebar();
+    removeFileBtn.onclick = () => {
+        attachedFile = null;
+        fileInput.value = '';
+        filePreview.style.display = 'none';
     };
 
-    mobileToggle.addEventListener('click', handleMobileOpen);
-    closeSidebarBtn.addEventListener('click', handleMobileClose);
+    function openSidebar() { sidebar.classList.add('open'); }
+    function closeSidebar() { sidebar.classList.remove('open'); }
 
-    sidebar.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
+    mobileToggle.addEventListener('click', (e) => { e.stopPropagation(); openSidebar(); });
+    closeSidebarBtn.addEventListener('click', (e) => { e.stopPropagation(); closeSidebar(); });
+    sidebar.addEventListener('click', (e) => { e.stopPropagation(); });
 
     searchInput.addEventListener('input', renderSidebar);
 
@@ -628,9 +688,7 @@
         });
     };
 
-    function saveToStorage() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-    }
+    function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
 
     function renderSidebar() {
         chatListEl.innerHTML = '';
@@ -639,7 +697,7 @@
         const filteredChats = chats.filter(chat => {
             if (!query) return true;
             return chat.title.toLowerCase().includes(query) || 
-                   chat.messages.some(m => m.parts.some(p => p.text.toLowerCase().includes(query)));
+                   chat.messages.some(m => m.parts.some(p => p.text && p.text.toLowerCase().includes(query)));
         });
 
         filteredChats.forEach(chat => {
@@ -660,26 +718,15 @@
                 if (window.innerWidth <= 768) closeSidebar();
             };
 
-            chatItem.querySelector('.edit').onclick = (e) => {
-                e.stopPropagation();
-                renameChat(chat.id);
-            };
-
-            chatItem.querySelector('.delete').onclick = (e) => {
-                e.stopPropagation();
-                deleteChat(chat.id);
-            };
+            chatItem.querySelector('.edit').onclick = (e) => { e.stopPropagation(); renameChat(chat.id); };
+            chatItem.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
 
             chatListEl.appendChild(chatItem);
         });
     }
 
     function createNewChat() {
-        const newChat = {
-            id: 'chat_' + Date.now(),
-            title: 'New Conversation',
-            messages: []
-        };
+        const newChat = { id: 'chat_' + Date.now(), title: 'New Conversation', messages: [] };
         chats.unshift(newChat);
         saveToStorage();
         selectChat(newChat.id);
@@ -722,7 +769,7 @@
             historyEl.innerHTML = `
                 <div class="message-wrapper">
                     <div class="message-sender">System</div>
-                    <div class="message ai">System initialized. Type a message to start.</div>
+                    <div class="message ai">System initialized. Type a message or attach a file to start.</div>
                 </div>
             `;
             return;
@@ -734,7 +781,6 @@
 
             const isUser = msg.role === 'user';
             const senderName = isUser ? 'You' : 'ZZAI Engine';
-            const textContent = msg.parts[0].text;
 
             wrapper.innerHTML = `
                 <div class="message-sender" style="${isUser ? 'align-self: flex-end;' : ''}">${senderName}</div>
@@ -742,11 +788,18 @@
             `;
 
             const messageDiv = wrapper.querySelector('.message');
-            if (isUser) {
-                messageDiv.innerText = textContent;
-            } else {
-                messageDiv.innerHTML = marked.parse(String(textContent));
-            }
+            
+            let htmlContent = '';
+            msg.parts.forEach(p => {
+                if (p.text) {
+                    htmlContent += isUser ? p.text : marked.parse(String(p.text));
+                } else if (p.inline_data) {
+                    htmlContent += `<div><em>[Imagem anexada]</em></div>`;
+                }
+            });
+
+            if (isUser) messageDiv.innerText = htmlContent;
+            else messageDiv.innerHTML = htmlContent;
 
             historyEl.appendChild(wrapper);
         });
@@ -756,18 +809,34 @@
 
     async function process() {
         const queryText = promptEl.value.trim();
-        if (!queryText) return;
+        if (!queryText && !attachedFile) return;
 
         if (!currentChatId) createNewChat();
 
         const activeChat = chats.find(c => c.id === currentChatId);
         
-        activeChat.messages.push({ role: "user", parts: [{ text: queryText }] });
-
-        if (activeChat.messages.length === 1 || activeChat.title === 'New Conversation') {
-            activeChat.title = queryText.substring(0, 25) + (queryText.length > 25 ? '...' : '');
+        let messageParts = [];
+        
+        if (attachedFile) {
+            if (attachedFile.type === 'text') {
+                messageParts.push({ text: `[Arquivo: ${attachedFile.name}]\n\`\`\`\n${attachedFile.content}\n\`\`\`` });
+            } else if (attachedFile.type === 'image') {
+                messageParts.push({ inline_data: { mime_type: attachedFile.mimeType, data: attachedFile.data } });
+            }
         }
 
+        if (queryText) {
+            messageParts.push({ text: queryText });
+        }
+
+        activeChat.messages.push({ role: "user", parts: messageParts });
+
+        const titleText = queryText || (attachedFile ? attachedFile.name : 'New Conversation');
+        if (activeChat.messages.length === 1 || activeChat.title === 'New Conversation') {
+            activeChat.title = titleText.substring(0, 25) + (titleText.length > 25 ? '...' : '');
+        }
+
+        removeFileBtn.click();
         saveToStorage();
         renderHistory();
         renderSidebar();
@@ -791,10 +860,9 @@
         historyEl.scrollTop = historyEl.scrollHeight;
 
         try {
-            // Mapeamento limpo para não enviar resíduos inválidos de contexto à API
             const payloadContents = activeChat.messages.map(msg => ({
                 role: msg.role === 'model' ? 'model' : 'user',
-                parts: [{ text: msg.parts[0].text }]
+                parts: msg.parts
             }));
 
             const resp = await fetch('/api/chat', {
@@ -843,10 +911,7 @@
     else { renderHistory(); renderSidebar(); }
 
     sendBtn.onclick = process;
-    newChatBtn.onclick = (e) => {
-        e.stopPropagation();
-        createNewChat();
-    };
+    newChatBtn.onclick = (e) => { e.stopPropagation(); createNewChat(); };
 
     promptEl.onkeydown = (e) => { 
         if (e.key === 'Enter' && !e.shiftKey) { 
